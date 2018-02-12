@@ -21,9 +21,10 @@ type Telegram struct {
 }
 
 type telegramMessage struct {
-	ChatId int    `json:"chat_id"`
-	Text   string `json:"text"`
-	Silent bool   `json:"disable_notification"`
+	ChatId    int    `json:"chat_id"`
+	Text      string `json:"text"`
+	Silent    bool   `json:"disable_notification"`
+	ParseMode string `json:"parse_mode"`
 }
 
 // Create initiates the Telegram Bot messenger using all the vital information provided.
@@ -35,20 +36,33 @@ func (s *Telegram) Create(botToken string, targetID int) {
 	}
 }
 
-// Send uses the Stringer interface to compose the messages sent over to Slack.
-func (s *Telegram) Send(text string, params ...interface{}) {
-	send(s, fmt.Sprintf(text, params...), false)
+// Send sends message over to the Telegram bot.
+func (s *Telegram) Send(text string) {
+	send(s, text, false, false)
 }
 
-func (s *Telegram) SendSilent(text string, params ...interface{}) {
-	send(s, fmt.Sprintf(text, params...), true)
+// SendMD sends message over to the Telegram bot.
+// The message will be parsed using supported Markdown formatting.
+// https://core.telegram.org/bots/api#formatting-options
+func (s *Telegram) SendMD(text string) {
+	send(s, text, false, true)
 }
 
-func send(telegram *Telegram, text string, silent bool) {
+// SendSilent sends message over to the Telegram bot.
+// Sends the message silently. Users will receive a notification with no sound.
+func (s *Telegram) SendSilent(text string) {
+	send(s, text, true, false)
+}
+
+func send(telegram *Telegram, text string, silent, markdown bool) {
 	t := &telegramMessage{
 		ChatId: telegram.targetID,
 		Text:   text,
 		Silent: silent}
+	if markdown {
+		t.ParseMode = "Markdown"
+	}
+
 	payload, err := json.Marshal(t)
 	if err != nil {
 		log.Fatalf("Failed to create json payload for Telegram Bot: %s\n",
